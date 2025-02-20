@@ -1,9 +1,5 @@
 import pytest
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 
 HTML_FILE = "styled_name_box.html"  # A megfelelő HTML fájl neve
 
@@ -18,24 +14,16 @@ def test_name_inside_div(html_content):
     divs = html_content.find_all("div", class_="name-box")
     assert any("Nagy János" in div.text for div in divs), "A név nincs a megfelelő div elemben!"
 
-@pytest.fixture(scope="module")
-def browser():
-    """Inicializálja a Selenium WebDriver-t."""
-    options = Options()
-    options.add_argument("--headless")
-    service = Service("chromedriver")  # Cseréld ki a megfelelő WebDriver elérési útra
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.get(f"file:///{HTML_FILE}")
-    yield driver
-    driver.quit()
-
-def test_box_styles(browser):
-    """Ellenőrzi a doboz CSS stílusait."""
-    div = browser.find_element(By.CLASS_NAME, "name-box")
-    style = div.value_of_css_property
-
-    assert style("border-style") == "solid", "A szegély nem solid!"
-    assert style("border-width") == "3px", "A szegély nem 3px!"
-    assert style("border-color") == "rgba(128, 0, 128, 1)", "A szegély színe nem #800080!"
-    assert style("padding") == "17px", "A belső margó nem 17px!"
-    assert style("margin") == "10%", "A külső margó nem 10%!"
+def test_box_styles_inline(html_content):
+    """Ellenőrzi a doboz CSS stílusait, ha inline stílus van használva."""
+    div = html_content.find("div", class_="name-box")
+    assert div, "A name-box osztályú div nem található!"
+    
+    style = div.get("style", "")
+    styles = dict(s.strip().split(":") for s in style.split(";") if ":" in s)
+    
+    assert styles.get("border-style") == "solid", "A szegély nem solid!"
+    assert styles.get("border-width") == "3px", "A szegély nem 3px!"
+    assert styles.get("border-color") in ["#800080", "rgba(128, 0, 128, 1)"], "A szegély színe nem #800080!"
+    assert styles.get("padding") == "17px", "A belső margó nem 17px!"
+    assert styles.get("margin") == "10%", "A külső margó nem 10%!"
